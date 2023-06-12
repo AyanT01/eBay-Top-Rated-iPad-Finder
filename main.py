@@ -1,47 +1,36 @@
 from bs4 import BeautifulSoup
 import requests
-def get_request_and_parse():
-    ebay = requests.get("https://www.ebay.com/sch/i.html?_fsrp=1&LH_Savings=1&rt=nc&_from=R40&_nkw=ipads&_sacat=0&LH_ItemCondition=2030")
-    ebay_text = ebay.text
-    new_soup = BeautifulSoup(ebay_text,"html.parser")
-    names = new_soup.find_all("span", role="heading")
-    names = [i.getText() for i in names]
-    del names[0]
-    ratings = new_soup.find_all("div", class_="x-star-rating")
-    ratings_value = []
-    for i in ratings:
-        rate_list = i.find("span",class_= "clipped").getText()
-        ratings_value.append(rate_list)
-    ratings_value = [float(i[0:3]) for i in ratings_value]
-    prices = new_soup.find_all("div",class_="s-item__info-section")
-    links = [a.get("href") for div in new_soup.find_all("div", class_="s-item__image") for a in div.find_all("a")]
-    prices = new_soup.find_all("span", class_="s-item__price")
-    del prices[0]
-    prices_list = []
-    for i in prices:
-        prices_list.append(i.getText())
-    prices_list = [i.split()[0] for i in prices_list if len(i) > 6]
-    info_dict = {}
-    print(len(names))
-    print(len(ratings_value))
-    print(names)
-    print(ratings_value)
-    """for index,value in enumerate(names):
-        empty_dict = {
-            "Name:":names[index],
-            "Ratings:":ratings_value[index],
-            "Prices":prices_list[index],
-            "Links":links[index]
-        }
-        info_dict[index] = empty_dict
-    return info_dict
-    """
-get_request_and_parse()
+import csv
 
-"""
-listt = get_request_and_parse()
-print(listt)
-def write_to_file():
-    pass
-    #with open("items.txt","w") as file:
-"""
+link = requests.get("https://www.ebay.com/sch/i.html?_nkw=ipad&_sacat=0&LH_Savings=1&LH_FS=1&rt=nc&_udlo=150&_udhi=350")
+link = link.text
+new_link = BeautifulSoup(link,"html.parser")
+names = new_link.find_all("span",role="heading")
+items_list = []
+for i in names:
+    if i.getText() == "Shop on eBay":
+        continue
+    items_list.append(i.getText())
+
+prices= new_link.find_all("span",class_="s-item__price")
+prices_list = []
+for i in prices:
+    if i.getText() == "$20.00":
+        continue
+    prices_list.append(i.getText()[0:7])
+
+links = [a.get("href") for div in new_link.find_all("div",class_="s-item__info clearfix") for a in div.find_all("a") if a.get("href") != "http://pages.ebay.com/trp/index.html"]
+for i in links:
+    if i == "https://ebay.com/itm/123456?hash=item28caef0a3a:g:E3kAAOSwlGJiMikD&amdata=enc%3AAQAHAAAAsJoWXGf0hxNZspTmhb8%2FTJCCurAWCHuXJ2Xi3S9cwXL6BX04zSEiVaDMCvsUbApftgXEAHGJU1ZGugZO%2FnW1U7Gb6vgoL%2BmXlqCbLkwoZfF3AUAK8YvJ5B4%2BnhFA7ID4dxpYs4jjExEnN5SR2g1mQe7QtLkmGt%2FZ%2FbH2W62cXPuKbf550ExbnBPO2QJyZTXYCuw5KVkMdFMDuoB4p3FwJKcSPzez5kyQyVjyiIq6PB2q%7Ctkp%3ABlBMULq7kqyXYA":
+        links.remove(i)
+    elif i.startswith("https://www.ebay.com/p/"):
+        links.remove(i)
+
+
+with open("Ebay_project.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    header = ["Names", "Price", "Links"]
+    writer.writerow(header)
+    for i in range(len(items_list)):
+        row = [items_list[i], prices_list[i], links[i]]
+        writer.writerow(row)
